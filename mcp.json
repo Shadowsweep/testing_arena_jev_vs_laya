@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--browser", "chromium"],
+      "env": {}
+    }
+  },
+  "notes": "Playwright MCP Tool: agent 'hands and eyes'. Tools used by agent: browser_navigate(http://localhost:3000) -> browser_snapshot -> browser_fill(#login-user/#login-pass) -> browser_click(Log In) x N -> browser_navigate(/security-dashboard) -> browser_click(Compare Jev vs Laya). Dashboard 'Playwright MCP' button shows the same loop; for a live agent run, point your MCP client (VS Code / Claude / Cursor) at this file."
+}

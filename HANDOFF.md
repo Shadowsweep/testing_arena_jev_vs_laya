@@ -1,0 +1,75 @@
+# Handoff Documentation
+
+## Project Status
+
+- **Project:** Jev AI + Laya Live Security Simulation Platform
+- **Design System:** NVIDIA Design Spec ([DESIGN.md](DESIGN.md))
+  - Theme: NVIDIA Green (`#76b900`), deep black canvas (`#000000`), `#121212` elevated surfaces, strict 2px radius, corner square motifs.
+  - Typography: **Poppins** (400, 500, 600, 700) + IBM Plex Mono.
+  - Guided Tour: **Driver.js** onboarding tour with NVIDIA styling and manual replay button.
+  - Architecture: **Archify Architecture Card**: Simplified inline 4-stage threat detection & active mitigation pipeline (`#archify-architecture`) with smooth scroll.
+  - Live Model Benchmark Widget: Real-time comparison table tracking latency, cost, and zero-trust egress boundary.
+- **Closed-Loop SOAR Active Defense:**
+  - Automated containment: high-confidence attack detection (>=90%) automatically blacklists the offending IP for 15 minutes.
+  - `soarGuard` middleware returns immediate `403 Forbidden` (`Forbidden: IP Blacklisted by SOAR Active Defense`).
+  - Dynamic SOAR status badge on dashboard (`#soar-status-badge`) switching from `Status: Monitoring` to `IP <ip> Blacklisted (TTL: 15m)`.
+  - Manual unblock button (`[🛡 Unblock All]`) and `/api/soar/*` management routes.
+- **Client-Side Behavioral Telemetry:**
+  - Login form captures `keystrokeDeltas`, `mouseDistanceMoved`, and `totalFormTimeMs`.
+  - Distinguishes synthetic automation scripts from human interactions in evaluation state.
+- **Multi-Vector Red-Teaming Matrix:**
+  - SQL Injection bypass probes (`' OR '1'='1`, `admin' --`).
+  - Slow-and-low credential stuffing with 20 account targets.
+  - Multi-question classification in a single forward pass: `is_threat` (`noul`) + `threat_category` (`choice`).
+- **Account Recovery via Hint:**
+  - Form displays security hint after 3 failed login attempts.
+  - Extraction from DOM enables zero-friction recovery and entry into `/user-dashboard`.
+- **Decision Reasoning Primitives (Neoul, Choice, Score):**
+  - `#tour-reasoning-primitives` card with view toggles (`[All Sections]`, `[1. Neoul]`, `[2. Choice]`, `[3. Score]`).
+  - **Neoul Table (`#table-primitive-noul`)**: Continuous probability scale ($0.0 - 1.0$), failure volume window, and client telemetry kinetics evaluated against $>0.800$ threshold.
+  - **Choice Table (`#table-primitive-choice`)**: Discrete adversary tactic breakdown (`sqli_attempt`, `password_spray`, `credential_stuffing`, `brute_force`, `benign_login`) with criteria match and confidence %.
+  - **Score Table (`#table-primitive-score`)**: Exploit risk severity tiers Level 0 (Harmless) through Level 3 (Exploit) with active status and SOAR containment rationale.
+- **Live System Controls & Engine Selector:**
+  - Dedicated top engine selection bar (`#engine-sel-jev`, `#engine-sel-laya`, `#engine-sel-both`).
+  - Auto-evaluating simulation: clicking any attack vector (e.g. `1 User`, `SQLi`) immediately auto-dispatches inference with the selected engine at live speed.
+  - Dedicated right-corner `[🗑 Clear Buffer]` button (`#btn-clear-buffer-corner`) with instant reset of triage banners, confidence gauges, and latency metrics.
+- **In-Depth Collapsible Accordion Dropdowns:**
+  - `#tour-reasoning-primitives` card features interactive section accordion toggles (`#btn-toggle-noul`, `#btn-toggle-choice`, `#btn-toggle-score`) plus global `[▾ Expand All]` / `[▴ Collapse All]` controls.
+  - Tables collapse cleanly to minimize visual noise and drop down on-demand for forensic inspection.
+- **Audit Stream Live Search Filter & Timestamps:**
+  - Real-time search filter input (`#log-search-filter`) searching IP, User, Payload, Status, or Timestamp.
+  - Timestamp mode toggling (`All Recorded` vs `Last 60s`).
+  - Dual-line timestamp rendering (Local Time + ISO UTC).
+- **Dynamic Movable Dashboard Blocks:**
+  - 6 modular blocks inside `#dashboard-blocks-container` with draggable grab handles (`⠿`) and `[▲ Up]` / `[▼ Down]` buttons.
+  - Automatic block index tracking (`01` through `06`) and boundary disable rules.
+  - Dynamic sequence persistence in `localStorage` (`nv_dash_block_order`).
+  - Top nav `[⟲ Reset Layout]` button (`#btn-reset-layout`) to restore default layout at any time.
+- **Dedicated Login & Signup Enclaves:**
+  - Distinct routes: `/signup` (Credential Enrollment Gateway) and `/login` (Enclave Auth Gateway with cross-navigation).
+  - Smooth auto-redirect and username prefill upon successful registration (`/login?registered=<user>`).
+- **Normal User Auth vs Brute Force Flagging:**
+  - Legitimate normal users authenticated with 200 OK, zero threat logs, and redirected to `/user-dashboard` with `ROLE: NORMAL USER (LEGITIMATE)` badge.
+  - Failed retries below threshold (< 5) classified as `Normal User Retry (X/5)` with benign recovery hint.
+  - Failed retries reaching threshold (>= 5) flagged as `Brute Force Attack` (`401 (FLAGGED)`) and highlighted red in `/security-dashboard` table.
+- **Playwright Test Suite:** 14 tests passing across 4 spec files (`npx playwright test`):
+  - `tests/end-to-end-architecture.spec.ts` (9/9 passed: SOAR block, Red-teaming, Telemetry, Benchmark, Hint recovery, Reasoning primitives, Live engine controls & search filters, Dynamic movable blocks, Normal User vs Brute Force Flagging).
+  - `tests/advanced-vectors.spec.ts` (2/2 passed: Multi-auth APIs, simulation endpoints, Archify inline architecture, pagination).
+  - `tests/multi-chrome.spec.ts` (1/1 passed: Concurrent Action Worker vs Inspector).
+  - `tests/simulation.spec.ts` (2/2 passed: Signup/Login Flow A, Burst + Compare Flow B).
+
+## Quick Links & Usage
+- Open Registration Gateway: [http://localhost:3000/signup](http://localhost:3000/signup)
+- Open Auth Gateway: [http://localhost:3000/login](http://localhost:3000/login) (also `/`)
+- Open Security Dashboard: [http://localhost:3000/security-dashboard](http://localhost:3000/security-dashboard)
+- Reorder Blocks: Click `[▲ Up]` or `[▼ Down]` on any block header bar, or drag via `⠿` handle.
+- Reset Block Order: Click `[⟲ Reset Layout]` in top navigation bar.
+- Select Engine: Click `[Jev AI]`, `[Laya AI]`, or `[⚡ Compare Jev vs Laya]` in the top toolbar.
+- Test Attack Vector: Click any attack button (e.g. `⚡ 1 User` or `💉 SQLi Bypass`) to trigger instant simulation and AI triage.
+- Launch Onboarding Tour: Click `[▶ Product Tour]` in top navigation bar.
+- Inspect Architecture: Click `[🏛 Archify Architecture]` in top navigation bar to smoothly scroll to inline pipeline card.
+- Toggle In-Depth Details: Click `[▾ In-Depth Details]` on any primitive card header, or `[▾ Expand All]` / `[▴ Collapse All]`.
+- Search Logs: Type into `🔍 Search logs...` input above the live audit stream table.
+- Run All Tests: `npx playwright test`
+- Headed Visual Demo: `npx playwright test --headed`
+
