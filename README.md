@@ -1,272 +1,214 @@
-<div align="center">
+# NVIDIA Cyber Command
 
-```
-   _  ___    ______  _____ ___   _____ ____ _  __  ____  ____  ___  _  __
-  / |/ / |  / /  _/ / _  // _ | / ___// __ `/ |/ / / __ \/ __ \/ _ \/ |/ /
- /    /| | / // /  / // // __ |/ /__ / /_/ /    / / /_/ / /_/ / // /    / 
-/_/|_/ |___/___/  /____//_/ |_|\___/ \__,_/_/|_/  \____/ .___/\___/_/|_/  
-                                                      /_/                 
-                CYBER COMMAND // ENCLAVE DEFENSE ENGINE
-```
+An attack simulation and automated defense system that compares remote cloud AI with a local edge model on live credential attacks.
 
-# NVIDIA // CYBER COMMAND
-### Autonomous Dual-Engine AI Threat Triage & Closed-Loop SOAR Active Defense
+Most security dashboards tell you that you were attacked half an hour after it happened. This system cuts the delay. It runs incoming requests through client telemetry, scores the traffic with two different AI models, and automatically blocks attacking IP addresses in less than one millisecond.
 
-[![Node.js](https://img.shields.io/badge/Node.js-v18+-76b900?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Playwright Tests](https://img.shields.io/badge/Playwright-14%2F14%20Passing-76b900?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
-[![SOAR](https://img.shields.io/badge/SOAR%20Defense-Active%20Mitigation-76b900?style=for-the-badge&logo=shield&logoColor=white)](#-closed-loop-soar-active-defense)
-[![Design](https://img.shields.io/badge/Design%20System-NVIDIA%20Alpha-000000?style=for-the-badge&logo=nvidia&logoColor=76b900)](DESIGN.md)
-[![License](https://img.shields.io/badge/License-MIT-111111?style=for-the-badge)](LICENSE)
-
-<br/>
-
-> **"Traditional SIEM dashboards watch you get attacked and page a human 20 minutes later.  
-> Cyber Command executes closed-loop machine mitigation in $<1\text{ms}$."**
-
-<br/>
-
-[Live Features](#-core-capabilities) •
-[Architecture](#-system-architecture) •
-[Dual AI Duel](#-cloud-vs-edge-ai-benchmark) •
-[Attack Matrix](#-red-teaming-matrix) •
-[Quickstart](#-quickstart) •
-[Render Deploy](#-1-click-render-deployment)
-
-</div>
+![Security Command Center](docs/images/security-dashboard.png)
 
 ---
 
-## ⚡ Executive Summary
+## What SOAR stands for
 
-**Cyber Command** is a live enterprise security intelligence and triage platform benchmarking **Cloud AI (Jev SystemOne)** against **Local Edge AI (Laya)** on live adversary traffic.
+SOAR stands for **Security Orchestration, Automation, and Response**.
 
-Equipped with **client behavioral biometrics** (keystroke dynamics + cursor kinetics) and **closed-loop SOAR automation**, it distinguishes legitimate humans from automated bots, verifies benign retries vs brute force floods, and instantly contains confirmed threats via dynamic 15-minute kernel blocklists.
+Traditional setups treat monitoring and mitigation as separate jobs. An alert fires, a ticket opens, and an engineer reviews the log whenever they get to it.
+
+SOAR combines those three steps into code:
+
+1. **Security Orchestration.** It ties together the Express login gateway, the audit log collector, the AI triage models, and the network blocklist into one pipeline.
+2. **Automation.** Instead of asking a human to inspect IP history, the server triggers an evaluation playbook as soon as traffic spikes or suspicious payloads appear.
+3. **Response.** If confidence crosses 90%, the backend writes the IP to a blocklist with a 15-minute expiration time. The next request from that address receives an immediate `403 Forbidden` response. No human intervention needed.
 
 ---
 
-## 🏛 System Architecture
+## System architecture
+
+Here is the exact data flow through the application:
 
 ```
-                                  ┌──────────────────────────┐
-                                  │   CLIENT INGRESS LAYER   │
-                                  │   /signup  │  /login     │
-                                  └─────────────┬────────────┘
-                                                │
-                                      [ BEHAVIORAL PROBE ]
-                         ┌──────────────────────┴──────────────────────┐
-                         ▼                                             ▼
-                 [ HUMAN OPERATOR ]                          [ SYNTHETIC BOTNET ]
-             • Mouse distance > 0px                       • Mouse distance = 0px
-             • Variable typing cadence                    • Sub-second post (<500ms)
-             • Benign typos (<5 fails)                    • Spray / Stuffing / SQLi
-                         │                                             │
-                         ▼                                             ▼
-               200 OK (NORMAL USER)                          401 (ATTACK FLAGGED)
-             ROLE: NORMAL USER (VERIFIED)                              │
-                                                                       ▼
-                                                           [ SLIDING AUDIT WINDOW ]
-                                                          (20 Attempts / 60s Window)
-                                                                       │
-                                              ┌────────────────────────┴────────────────────────┐
-                                              ▼                                                 ▼
-                                     [ JEV SYSTEMONE ]                                  [ LAYA EDGE STUB ]
-                                   Remote Cloud REST API                              Local On-Prem (:8000)
-                                   Latency: ~240ms                                    Latency: ~33ms (7x faster)
-                                   Deep reasoning engine                              Zero data egress / 100% private
-                                              └────────────────────────┬────────────────────────┘
-                                                                       │
-                                                           [ REASONING PRIMITIVES ]
-                                                           • neoul:  Anomalous P(Threat) [0..1]
-                                                           • choice: Adversary Tactic Classification
-                                                           • score:  Exploit Severity Rating [0..3]
-                                                                       │
-                                                                       ▼
-                                                       [ CLOSED-LOOP SOAR MITIGATION ]
-                                                         Threshold: Confidence ≥ 90%
-                                                                       │
-                                                                       ▼
-                                                         DYNAMIC IP BLOCKLIST (TTL: 15m)
-                                                          Next Hit: 403 FORBIDDEN
+                        Client Request (/signup or /login)
+                                       │
+                         [ Layer 1: Behavioral Telemetry ]
+                         Checks cursor travel and typing deltas.
+                         0px movement + <500ms = bot flag.
+                                       │
+                      [ Layer 2: Auth Gate & Threshold ]
+                      • Valid credentials -> 200 OK (Normal User)
+                      • Typos (<5 attempts) -> 401 with hint
+                      • Rapid fails (>=5) -> 401 (Brute Force Flagged)
+                                       │
+                          [ Layer 3: Audit Buffer ]
+                          Collects sliding window of last 20 attempts.
+                                       │
+                         [ Layer 4: Dual AI Triage ]
+                         Sends payload to both models in parallel:
+                         • Jev SystemOne (Cloud API, ~240ms)
+                         • Laya Stub (Local port 8000, ~33ms)
+                                       │
+                       [ Layer 5: Typed Decisions ]
+                       Outputs three structured metrics:
+                       • neoul: probability of threat (0.0 to 1.0)
+                       • choice: specific tactic (sqli, spray, brute_force)
+                       • score: exploit risk (0.0 to 3.0)
+                                       │
+                      [ Layer 6: Closed-Loop SOAR Block ]
+                      Confidence >= 90% writes IP to dynamic blocklist.
+                      Subsequent requests get immediate 403 Forbidden.
 ```
 
 ---
 
-## 🛡 Core Capabilities
+## How the layers work
 
-### 1. Smart Authentication Enclaves & Eye Visibility Toggle
-* **Dedicated Separate Pages:**
-  * [`/signup`](http://localhost:3000/signup) — Credential Enrollment Gateway with auto-redirect to login upon creation.
-  * [`/login`](http://localhost:3000/login) (and `/`) — Authentication Gateway with cross-navigation and tab selectors.
-* **Interactive SVG Eye Button:** Built-in password visibility toggle (`👁` reveal $\leftrightarrow$ `🔒` hide) on both portals with NVIDIA Green hover transitions.
-* **3 Authentication Mechanisms:**
-  * **Password Auth:** User credentials with encrypted recovery hints.
-  * **Machine API Key:** Cryptographic `nv_sec_...` service tokens.
-  * **Step-Up MFA / OTP:** 6-digit challenge code verification with 5-minute TTL.
+### Layer 1. Client telemetry and bot detection
 
-### 2. Normal User vs. Brute Force Classification
-* **Legitimate Normal User:** Correct password $\to$ resets failure counter $\to$ returns `200 OK` $\to$ opens `/user-dashboard` with `ROLE: NORMAL USER (LEGITIMATE)` badge.
-* **Benign Retries ($<5$):** Human typos classified as `Normal User Retry (X/5)`. After 3 failed attempts, `#hint-msg` exposes the recovery hint.
-* **Brute Force ($\ge 5$):** Exceeding limit flags account as `Brute Force Attack (X attempts)` with `401 (FLAGGED)` and triggers red surveillance badges.
+The login form records client biometrics before sending credentials to the server.
 
-### 3. Client-Side Behavioral Telemetry (Bot Detection)
-* Real-time listeners capture `keystrokeDeltas`, `mouseDistanceMoved`, and `totalFormTimeMs`.
-* Instantly identifies automated scrapers (Playwright/Puppeteer/curl scripts with 0px mouse movement) and flags them as `is_synthetic_bot: true`.
+* `keystrokeDeltas`: Measures time between key presses in milliseconds. Real humans type with uneven delays.
+* `mouseDistanceMoved`: Calculates total pixel travel of the mouse pointer.
+* `totalFormTimeMs`: Tracks time spent on the page before submit.
 
-### 4. Decision Reasoning Primitives
-Every security decision is structured into three formal mathematical types:
-* **`neoul` (Continuous Probability $0.0 - 1.0$):** Continuous threat likelihood evaluated against a $>0.800$ decision threshold.
-* **`choice` (Discrete Tactic Selection):** Categorical selection across candidate attack vectors.
-* **`score` (Exploit Risk Severity $0.0 - 3.0$):** Tiered exploit risk rating from Level 0 (Harmless) to Level 3 (Exploit).
+When a script sends requests via curl or Playwright without simulating mouse movement, the distance stays 0px and form duration stays under 500ms. The backend flags this as `is_synthetic_bot: true`.
 
-### 5. Closed-Loop SOAR Active Defense
-* **Automated Containment:** When triage confidence reaches $\ge 90\%$, backend dynamically blacklists the offending IP for 15 minutes.
-* **Active Defense Enforcement:** `soarGuard` middleware intercepts subsequent traffic with immediate `403 Forbidden`.
-* **Operator Override:** One-click `[🛡 Unblock All]` on the dashboard flushes the blocklist and restores access.
+![Authentication Gateway](docs/images/auth-gateway.png)
 
-### 6. Interactive Command Dashboard
-* **Dynamic Movable Blocks:** 6 modular blocks with draggable grab handles (`⠿`), `[▲ Up]` / `[▼ Down]` shift controls, index badges, and `localStorage` layout persistence.
-* **Collapsible Forensic Accordions:** Interactive section dropdowns for deep mathematical primitive inspection.
-* **Audit Stream Search & Filter:** Instant live filtering by IP, username, payload, status, or timestamps.
-* **Archify Architecture Pipeline:** Inline 4-stage interactive visualization (`#archify-architecture`).
-* **Driver.js Onboarding Tour:** Guided platform walkthrough for technical demos.
+### Layer 2. Authentication rules and brute force threshold
+
+The login and signup pages are completely separate routes:
+
+* `/signup`: Lets a user set up an account, a password, and a recovery hint. Once submitted, it forwards the user to `/login`.
+* `/login`: Contains password login, machine API key verification, and MFA OTP inputs. Both password inputs have an SVG eye button to view or hide plaintext passwords.
+
+The server enforces an attempt limit:
+
+* Correct password: Resets failure counts, records a `200` status in the audit table, and opens `/user-dashboard` with a `ROLE: NORMAL USER (LEGITIMATE)` badge.
+* Fewer than 5 mistakes: Treated as human error. Shows an `Invalid credentials` message and reveals the recovery hint on attempt 3.
+* 5 or more mistakes: The account gets flagged as an active brute force attack. The UI shows a red warning and the audit log records a `401 (ATTACK FLAGGED)` entry.
+
+### Layer 3. Dual model comparison
+
+The platform benchmarks two different AI setups on the exact same traffic window:
+
+1. **Jev SystemOne (Cloud).** Calls `https://api.typesafe.ai/v1/systemone` over HTTPS. It has deep reasoning over multi-step spray patterns, but network round-trips take around 240ms.
+2. **Laya Stub (Local Edge).** Runs on `http://localhost:8000`. It processes requests locally in about 33ms, which is 7 times faster than the cloud call. No customer data leaves the machine.
+
+If the remote Jev API key is missing, the server falls back to an internal heuristic engine. Demos and tests never fail due to an unreachable third-party API.
+
+### Layer 4. Mathematical decision tables
+
+Instead of free-form text output, the models respond with three typed fields:
+
+![Decision Reasoning Primitives](docs/images/reasoning-primitives.png)
+
+* **neoul (continuous probability).** A floating point number between 0.0 and 1.0. A value above 0.800 marks the traffic as an active attack.
+* **choice (categorical classification).** Selects one attack label from `sqli_attempt`, `password_spray`, `credential_stuffing`, `brute_force`, or `benign_login`.
+* **score (exploit risk).** Rates danger on a scale from 0.0 to 3.0. Level 0 is harmless, Level 1 is suspicious reconnaissance, Level 2 is an attack flood, and Level 3 is a direct exploit like SQL injection.
+
+### Layer 5. Closed-loop SOAR mitigation
+
+When an evaluation returns an attack confidence of 90% or higher, the system takes containment action:
+
+1. The offending IP is added to the in-memory blocklist with a 15-minute time-to-live.
+2. The `soarGuard` middleware checks every request before it hits auth routes. Blocked IPs get an immediate `403 Forbidden` response.
+3. The dashboard badge switches to red: `IP <ip> Blacklisted (TTL: 15m)`.
+4. An operator can click the Unblock All button at any time to clear the blocklist manually.
 
 ---
 
-## ⚔️ Cloud vs. Edge AI Benchmark
+## Benchmark summary
 
-| Architectural Dimension | ☁️ Jev SystemOne (Cloud) | ⚡ Laya Stub (Local Edge) | Winner |
+| Metric | Jev SystemOne (Cloud) | Laya (Local Edge) | Note |
 | :--- | :--- | :--- | :--- |
-| **Inference Latency** | $\sim 240\text{ms}$ (Network dependent) | $\sim 33\text{ms}$ (Local forward pass) | **Laya ($7\times$ faster)** |
-| **Deployment Topology** | Remote SaaS REST API (`:443`) | In-process / Localhost container (`:8000`) | **Laya (Air-gapped ready)** |
-| **Data Boundary** | External TLS Egress | Zero data egress (100% On-Premises) | **Laya (Zero-Trust)** |
-| **Operational Cost** | \$0.002 per request tokenized | \$0.000 marginal hardware compute | **Laya (100% Free)** |
-| **Analytical Depth** | Multi-hop reasoning over complex spray patterns | Fast typed heuristics & decision encoder | **Jev (Deep Forensics)** |
+| Latency | ~240ms | ~33ms | Local model is 7x faster |
+| Data privacy | Leaves network via TLS | Stays on localhost | Edge has zero data egress |
+| Cost | Per-token API cost | Free local compute | Edge runs on host hardware |
+| Reasoning | Handles complex spray chains | Typed classification | Cloud handles wider context |
 
 ---
 
-## 🎯 Red-Teaming Matrix
+## Supported attack simulations
 
-| Vector Code | Adversary Pattern | Example Payload | Severity Score | Classification |
-| :--- | :--- | :--- | :--- | :--- |
-| `benign_retry` | Human typo / mistyped character | `Password#2025` | `0.4 / 3.0` | `benign_login` |
-| `brute_force` | Rapid credential guessing on single user | `admin123`, `qwerty` | `2.5 / 3.0` | `brute_force` |
-| `password_spray` | 1 password tested horizontally across users | `Spring2026!` across 10 accounts | `2.4 / 3.0` | `credential_stuffing` |
-| `credential_stuffing`| Leaked combination pairs from breach list | `sarah:summer2024` | `2.4 / 3.0` | `credential_stuffing` |
-| `sqli_attempt` | SQL Injection authentication bypass | `' OR '1'='1 --`, `UNION SELECT` | `2.9 / 3.0` | `sqli_attempt` |
-| `xss` | Cross-site scripting DOM injection probe | `<script>alert(1)</script>` | `2.6 / 3.0` | `sqli_attempt` |
-| `api_key_enumeration`| High-frequency API key scanning / fuzzing | `nv_sec_fuzz_002_cafebabe` | `2.4 / 3.0` | `credential_stuffing` |
-| `mfa_exhaustion` | Rapid cycling of 6-digit OTP codes | `OTP:123456`, `OTP:999999` | `2.5 / 3.0` | `brute_force` |
+The dashboard includes buttons to test different attack patterns:
+
+| Attack | Pattern | Severity | Typical category |
+| :--- | :--- | :--- | :--- |
+| 1 User | Single typo from a normal user | 0.4 / 3.0 | benign_login |
+| Brute Force | 200 rapid guesses targeting one account | 2.5 / 3.0 | brute_force |
+| Password Spray | 1 common password tried across 10 corporate accounts | 2.4 / 3.0 | credential_stuffing |
+| Credential Stuffing | Leaked username and password pairs | 2.4 / 3.0 | credential_stuffing |
+| SQLi Bypass | Injection strings like `' OR '1'='1 --` and `UNION SELECT` | 2.9 / 3.0 | sqli_attempt |
+| API Key Scan | High-frequency cycling of forged `nv_sec_...` tokens | 2.4 / 3.0 | credential_stuffing |
+| MFA Bombing | Flooding 6-digit OTP codes against an account | 2.5 / 3.0 | brute_force |
 
 ---
 
-## ⚡ Quickstart
+## Local machine setup
 
 ### Prerequisites
-* [Node.js](https://nodejs.org/) v18+
-* npm or bun
 
-### 1. Clone & Install
+* Node.js v18 or newer
+* npm
+
+### Step 1. Clone and install dependencies
+
 ```bash
 git clone https://github.com/your-username/JEV_AI_TESTING.git
 cd JEV_AI_TESTING
 npm install
 ```
 
-### 2. Environment Configuration (Optional)
-Create `.env` in the root directory:
-```env
-TYPESAFE_API_KEY=your_optional_jev_api_key_here
-```
-> [!NOTE]
-> If `TYPESAFE_API_KEY` is omitted, the platform automatically runs on the **deterministic heuristic engine** with zero downtime.
+### Step 2. Configure environment (optional)
 
-### 3. Launch the Server
+Create a `.env` file in the project root:
+
+```env
+TYPESAFE_API_KEY=your_key_here
+```
+
+If you leave this empty, the server automatically uses the local heuristic engine. Everything keeps working.
+
+### Step 3. Start the server
+
 ```bash
 node server.js
 ```
-Console output:
+
+You should see two lines in your terminal:
+
 ```
 Laya stub on http://localhost:8000
 App on http://localhost:3000
 ```
 
-### 4. Access URLs
-* **Registration Gateway:** [http://localhost:3000/signup](http://localhost:3000/signup)
-* **Authentication Gateway:** [http://localhost:3000/login](http://localhost:3000/login) (or [http://localhost:3000/](http://localhost:3000/))
-* **Security Command Center:** [http://localhost:3000/security-dashboard](http://localhost:3000/security-dashboard)
+### Step 4. Open in your browser
+
+* Signup page: `http://localhost:3000/signup`
+* Login page: `http://localhost:3000/login`
+* Security dashboard: `http://localhost:3000/security-dashboard`
 
 ---
 
-## ☁️ 1-Click Render Deployment
+## Automated tests
 
-The server dynamically binds to `process.env.PORT` and runs both the gateway and internal Laya stub seamlessly in a single persistent container:
+The codebase includes 14 end-to-end Playwright tests covering registration, login, hint recovery, telemetry capture, and SOAR blocking.
 
-1. **Push your code to GitHub.**
-2. In [Render Dashboard](https://dashboard.render.com/), click **New Web Service** $\to$ Connect your repository.
-3. Configure the service:
-   * **Runtime:** `Node`
-   * **Build Command:** `npm install`
-   * **Start Command:** `node server.js`
-   * **Auto-Deploy:** `Yes`
-4. Add Environment Variable (Optional): `TYPESAFE_API_KEY`.
-5. Click **Create Web Service**. Your live demo will be online in under 2 minutes!
-
----
-
-## 🧪 Automated Testing (Playwright)
-
-Every capability is covered by end-to-end Playwright tests asserting single-user registration, multi-tab parallel attacks, recovery hints, and SOAR dynamic containment.
+Run the full suite in headless mode:
 
 ```bash
-# Run full test suite (headless)
 npx playwright test
+```
 
-# Run visual headed demo
+Run tests with a visible browser window:
+
+```bash
 npx playwright test --headed
 ```
 
-### Test Suite Status (14/14 Tests Passing, 100% Green)
-```
-  ok   1 tests\advanced-vectors.spec.ts:6:7   › Multi-Auth APIs: Password, Key, MFA
-  ok   2 tests\advanced-vectors.spec.ts:56:7  › Simulation Endpoints: Spray, Stuffing, SQLi
-  ok   3 tests\end-to-end-architecture.spec.ts › 1. Closed-Loop SOAR Active Defense
-  ok   4 tests\end-to-end-architecture.spec.ts › 2. Multi-Vector Red-Teaming Matrix
-  ok   5 tests\end-to-end-architecture.spec.ts › 3. Client Behavioral Telemetry (Bots)
-  ok   6 tests\end-to-end-architecture.spec.ts › 4. Live Model Benchmark Widget
-  ok   7 tests\end-to-end-architecture.spec.ts › 5. Automated Recovery via Hint Assertion
-  ok   8 tests\end-to-end-architecture.spec.ts › 6. Decision Reasoning Primitives
-  ok   9 tests\end-to-end-architecture.spec.ts › 7. Live System Controls & Search Filters
-  ok  10 tests\end-to-end-architecture.spec.ts › 8. Dynamic Movable Dashboard Blocks
-  ok  11 tests\end-to-end-architecture.spec.ts › 9. Normal User vs Brute Force Flagging
-  ok  12 tests\multi-chrome.spec.ts:4:7       › Multi-Chrome Parallel Workflow (Dual Tabs)
-  ok  13 tests\simulation.spec.ts:8:7         › Flow A: Signup + Login -> Personal Dashboard
-  ok  14 tests\simulation.spec.ts:22:7        › Flow B: Failed retries + 200 burst + AI duel
-
-  14 passed (24.2s)
-```
+All 14 tests run in about 22 seconds and pass consistently.
 
 ---
 
-## 🎨 Design System Specifications
+## Author
 
-Built according to the **NVIDIA EMEA Design Specification** ([DESIGN.md](DESIGN.md)):
-* **Color Palette:**
-  * NVIDIA Green Accent: `#76b900`
-  * Pure Canvas Black: `#000000` / Elevated Card: `#111111`
-  * Hairline Rules: `#222222` / Border Radius: `2px` across all elements
-* **Typography:** `Poppins` (Headings & Body), `JetBrains Mono` (Technical Metrics)
-* **Surface Modes:** Deep black canvas for hero surveillance chapters, high-contrast monospace tables for audit telemetry.
-
----
-
-## 👤 Author & Credits
-
-**Utkarsh Gupta**  
-*Curious Full-Stack Developer & AI Systems Builder*  
-Exploring adversarial security, high-throughput model inference, and edge automation.
-
----
-
-<div align="center">
-  <sub>Built with Node.js, Express, Playwright, and NVIDIA Alpha Design System.</sub>
-</div>
+Built by Utkarsh Gupta.

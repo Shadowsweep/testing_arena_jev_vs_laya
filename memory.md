@@ -43,7 +43,8 @@
 - `BACKEND.md`: Updated password login and page route specifications.
 - `EVALUATION.md`: Updated status table.
 - `HANDOFF.md`: Updated project status and test inventory.
-- `README.md`: Created comprehensive documentation with architecture flow, key capabilities, Render deployment instructions, and test inventory.
+- `README.md`: Overhauled to remove Render section, add local setup, explain SOAR in plain English, detail layer architecture, embed 3 screenshots (`docs/images/`), and apply unslop rules (no em dashes, sentence case, no decorative emojis, concrete voice).
+- `docs/images/`: Added `auth-gateway.png`, `security-dashboard.png`, and `reasoning-primitives.png`.
 
 ---
 
