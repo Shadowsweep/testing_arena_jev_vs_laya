@@ -941,7 +941,10 @@ app.get('/signup', (req, res) => res.send(`<html>${SHARED_HEAD}<body>
     </div>
     <div style="margin-bottom: 12px;">
       <label class="mono" style="font-size: 11px; color: var(--nv-text-mute); display: block; margin-bottom: 4px;">PASSWORD</label>
-      <input id="reg-pass" type="password" placeholder="Password (e.g. StrongPassword#2026)" style="width: 100%;" />
+      <div style="position: relative;">
+        <input id="reg-pass" type="password" placeholder="Password (e.g. StrongPassword#2026)" style="width: 100%; padding-right: 40px;" />
+        <button type="button" id="btn-toggle-reg-pass" onclick="togglePasswordVisibility('reg-pass', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: var(--nv-text-mute); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.15s ease;" onmouseover="this.style.color='var(--nv-green)'" onmouseout="this.style.color='var(--nv-text-mute)'" title="Toggle password visibility" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+      </div>
     </div>
     <div style="margin-bottom: 16px;">
       <label class="mono" style="font-size: 11px; color: var(--nv-text-mute); display: block; margin-bottom: 4px;">SECURITY PASSWORD HINT</label>
@@ -964,6 +967,22 @@ app.get('/signup', (req, res) => res.send(`<html>${SHARED_HEAD}<body>
 </div>
 
 <script>
+const EYE_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+const EYE_CLOSED = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
+function togglePasswordVisibility(id, btn){
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.innerHTML = EYE_CLOSED;
+    btn.title = 'Hide password';
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = EYE_OPEN;
+    btn.title = 'Show password';
+  }
+}
 function regUser(){ return document.getElementById('reg-user').value.trim(); }
 function regPass(){ return document.getElementById('reg-pass').value; }
 
@@ -1036,7 +1055,10 @@ app.get(['/login', '/'], (req, res) => res.send(`<html>${SHARED_HEAD}<body>
       </div>
       <div style="margin-bottom: 12px;">
         <label class="mono" style="font-size: 11px; color: var(--nv-text-mute); display: block; margin-bottom: 4px;">PASSWORD</label>
-        <input id="login-pass" type="password" placeholder="Password" onfocus="recordKeyFocus()" onkeydown="recordKeyDown()"/>
+        <div style="position: relative;">
+          <input id="login-pass" type="password" placeholder="Password" style="width: 100%; padding-right: 40px;" onfocus="recordKeyFocus()" onkeydown="recordKeyDown()"/>
+          <button type="button" id="btn-toggle-login-pass" onclick="togglePasswordVisibility('login-pass', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: var(--nv-text-mute); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.15s ease;" onmouseover="this.style.color='var(--nv-green)'" onmouseout="this.style.color='var(--nv-text-mute)'" title="Toggle password visibility" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+        </div>
       </div>
       <button class="btn-nv-primary" style="width: 100%; margin: 12px 0 4px; justify-content: center;" onclick="login()">Log In</button>
       <div id="msg" style="color: var(--nv-error); font-size: 13px; margin-top: 8px; font-weight: 600;"></div>
@@ -1143,6 +1165,23 @@ function switchAuthTab(tab){
 }
 
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const EYE_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+const EYE_CLOSED = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
+function togglePasswordVisibility(id, btn){
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.innerHTML = EYE_CLOSED;
+    btn.title = 'Hide password';
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = EYE_OPEN;
+    btn.title = 'Show password';
+  }
+}
 
 async function login(){
   const totalFormTimeMs = formStartTime ? (Date.now() - formStartTime) : 0;

@@ -5,8 +5,8 @@
 ### What Was Done
 1. **Dedicated Login & Signup Pages Separation**:
    - Decoupled registration and authentication cards into dedicated, distinct routes:
-     - `/signup`: Dedicated Enclave Registration Gateway (`#reg-user`, `#reg-pass`, `#reg-hint`, `Sign Up` button, cross-link to `/login`). Automatically redirects to `/login?registered=<user>` upon successful account creation.
-     - `/login` (and `/` mapping to `/login`): Dedicated Enclave Authentication Gateway with Enclave Login card (`#login-user`, `#login-pass`, `Log In` button, `#msg`, `#hint-msg`, cross-link to `/signup`, plus API Key and MFA tabs). Pre-populates username and displays success banner if redirected from `/signup`.
+     - `/signup`: Dedicated Enclave Registration Gateway (`#reg-user`, `#reg-pass` with 👁 password visibility toggle, `#reg-hint`, `Sign Up` button, cross-link to `/login`). Automatically redirects to `/login?registered=<user>` upon successful account creation.
+     - `/login` (and `/` mapping to `/login`): Dedicated Enclave Authentication Gateway with Enclave Login card (`#login-user`, `#login-pass` with 👁 password visibility toggle, `Log In` button, `#msg`, `#hint-msg`, cross-link to `/signup`, plus API Key and MFA tabs). Pre-populates username and displays success banner if redirected from `/signup`.
 2. **Legitimate Normal User Authentication vs Brute Force Attack Flagging**:
    - Added in-memory per-user and per-IP failure tracking with threshold `BRUTE_FORCE_LIMIT = 5`.
    - **Legitimate Normal User Login (Correct Credentials)**:
