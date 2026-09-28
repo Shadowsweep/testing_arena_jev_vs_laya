@@ -259,8 +259,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // SOAR Active Defense Enforcement Middleware
+// Mask live host/client IP with configurable fake IP for demo presentation privacy
+const DEMO_FAKE_IP = process.env.DEMO_FAKE_IP || '198.51.100.42';
+
+function getClientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd && !fwd.includes('127.0.0.1') && !fwd.includes('::1') && !fwd.includes('localhost')) {
+    return fwd.split(',')[0].trim();
+  }
+  return DEMO_FAKE_IP;
+}
+
 function soarGuard(req, res, next) {
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const clientIp = getClientIp(req);
   if (ipBlocklist.has(clientIp)) {
     const info = ipBlocklist.get(clientIp);
     if (Date.now() < info.expiresAt) {
@@ -292,7 +303,7 @@ app.post('/api/signup', soarGuard, handleSignup);
 
 function handleLogin(req, res) {
   const { username, password, telemetry } = req.body;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = getClientIp(req);
   const user = users.get(username);
   if (user && user.password === password) {
     if (username) userFailures.delete(username);
@@ -381,7 +392,7 @@ app.post('/api/auth/apikey/generate', (req, res) => {
 });
 app.post('/api/auth/apikey/verify', soarGuard, (req, res) => {
   const key = req.headers['x-api-key'] || req.body?.apiKey;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = getClientIp(req);
   if (key && apiKeys.has(key)) {
     const info = apiKeys.get(key);
     return res.json({ success: true, authenticated: true, username: info.username, role: 'service_account' });
@@ -400,7 +411,7 @@ app.post('/api/auth/mfa/send-otp', (req, res) => {
 });
 app.post('/api/auth/mfa/verify-otp', soarGuard, (req, res) => {
   const { username, code } = req.body;
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = getClientIp(req);
   const record = otpStore.get(username);
   if (record && record.code === String(code).trim() && Date.now() < record.expiresAt) {
     otpStore.delete(username);
@@ -467,8 +478,9 @@ app.post('/api/soar/clear', (req, res) => {
 
 // A. Classic Brute Force (High frequency on 1 user)
 const BURST = ['admin123', 'password', '12345678', 'qwerty', 'letmein123', 'bruno', "' OR '1'='1", '<script>alert(1)</script>'];
+const ATTACKER_BURST_IP = '45.33.32.156';
 app.post('/api/simulate-single', (req, res) => {
-  pushLog({ ip: '127.0.0.1', username: 'Utkarsh', attempted: 'Bruno1', status: '401', mechanism: 'password' });
+  pushLog({ ip: DEMO_FAKE_IP, username: 'Utkarsh', attempted: 'Bruno1', status: '401', mechanism: 'password' });
   res.json({ added: 1, attack_type: 'benign_retry' });
 });
 app.post('/api/simulate-burst', (req, res) => {
@@ -479,7 +491,7 @@ app.post('/api/simulate-burst', (req, res) => {
   }
   const target = req.body?.target || 'Utkarsh';
   for (let i = 0; i < n; i++) {
-    pushLog({ ip: '127.0.0.1', username: target, attempted: mask(BURST[i % BURST.length]), status: '401', mechanism: 'password' });
+    pushLog({ ip: ATTACKER_BURST_IP, username: target, attempted: mask(BURST[i % BURST.length]), status: '401', mechanism: 'password' });
   }
   res.json({ added: n, attack_type: 'brute_force' });
 });

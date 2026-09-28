@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "playwright test --headed",
-    "test:headless": "playwright test"
+    "test:headless": "playwright test",
+    "test:install": "playwright install chromium"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

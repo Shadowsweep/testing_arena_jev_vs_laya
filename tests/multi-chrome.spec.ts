@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Multi-Chrome Parallel Workflow: Live Attack & Surveillance', () => {
+  test.beforeEach(async ({ request }) => {
+    await request.post('/api/clear-buffer');
+    await request.post('/api/soar/unblock');
+  });
+
   test('Two concurrent tabs: Action Worker on / vs Inspector on /security-dashboard', async ({ browser }) => {
     // 1. Initialize Multi-Tab Session in single browser context
     const context = await browser.newContext({ baseURL: 'http://localhost:3000' });

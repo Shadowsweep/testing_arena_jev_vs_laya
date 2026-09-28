@@ -9,6 +9,11 @@
   - Guided Tour: **Driver.js** onboarding tour with NVIDIA styling and manual replay button.
   - Architecture: **Archify Architecture Card**: Simplified inline 4-stage threat detection & active mitigation pipeline (`#archify-architecture`) with smooth scroll.
   - Live Model Benchmark Widget: Real-time comparison table tracking latency, cost, and zero-trust egress boundary.
+- **Privacy & Demo Safe Presentation:**
+  - Configurable `DEMO_FAKE_IP` in `.env` (`198.51.100.42` default) masks real host/LAN client IP from surveillance stream and SOAR badges during demos.
+- **Assets & Documentation:**
+  - Dedicated `/images` folder housing updated UI screenshots (`auth-gateway.png`, `user-dashboard.png`, `dual-engine-triage.png`, `security-dashboard.png`, `reasoning-primitives.png`).
+  - End-to-end 5-layer pipeline architecture diagram documented in `README.md`.
 - **Closed-Loop SOAR Active Defense:**
   - Automated containment: high-confidence attack detection (>=90%) automatically blacklists the offending IP for 15 minutes.
   - `soarGuard` middleware returns immediate `403 Forbidden` (`Forbidden: IP Blacklisted by SOAR Active Defense`).

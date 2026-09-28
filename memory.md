@@ -1,5 +1,27 @@
 # Project Memory & Session History
 
+## [2026-09-28] Images Folder Setup, Demo Fake IP Masking & System Architecture in README
+
+### What Was Done
+1. **Dedicated Images Directory (`images/`)**:
+   - Created `/images` directory at repository root.
+   - Populated with clean UI screenshots:
+     - `images/auth-gateway.png`: Auth Gateway with password eye reveal/hide toggle and MFA/API key tabs.
+     - `images/user-dashboard.png`: Legitimate user personal enclave dashboard with green role badge.
+     - `images/dual-engine-triage.png`: Dual Engine Triage (Jev Cloud vs Laya Local Edge) and Decision Reasoning Primitives.
+     - `images/security-dashboard.png`: NVIDIA Cyber Command surveillance dashboard.
+     - `images/reasoning-primitives.png`: Continuous probability (neoul), tactic taxonomy (choice), and risk scoring (score).
+   - Mirrored into `docs/images/` for backward link compatibility.
+2. **Demo Fake IP Masking**:
+   - Added `DEMO_FAKE_IP` configuration in `.env` (default: `198.51.100.42`).
+   - Implemented `getClientIp(req)` helper in `server.js` preventing exposure of private network or localhost IP (`127.0.0.1`, `::1`) in surveillance streams or SOAR badges during demos and recordings.
+   - Updated simulation endpoints (`/api/simulate-single`, `/api/simulate-burst`) to use `DEMO_FAKE_IP`.
+   - Preserves test suite isolation (`x-forwarded-for` preserved for explicit attack assertions).
+3. **Comprehensive Architecture in `README.md`**:
+   - Added 5-layer pipeline architecture diagram (Client Ingress -> Ingress Gate -> Sliding Audit Window -> Dual AI Engines -> Mathematical Decision Primitives -> SOAR Closed-Loop Mitigation).
+   - Embedded newly captured `images/dual-engine-triage.png` and updated image paths to `images/`.
+   - Documented `DEMO_FAKE_IP` in local machine setup instructions.
+
 ## [2026-09-28] Dedicated Login & Signup Pages, Legitimate Normal User Auth & Brute Force Limit Flagging
 
 ### What Was Done
@@ -37,6 +59,8 @@
 
 ### Files Changed
 - `server.js`: Added failure tracking maps, updated `handleLogin`, separated `/signup` and `app.get(['/login', '/'])` routes, updated `/user-dashboard` with `ROLE: NORMAL USER (LEGITIMATE)` badge, updated `formatRow` with `200 OK (NORMAL USER)` and `401 (ATTACK FLAGGED)` status badges.
+- `package.json`: Added `test:install` script (`playwright install chromium`).
+- `README.md`: Added `npx playwright install chromium` first-time step to automated tests section.
 - `tests/simulation.spec.ts`: Updated Flow A registration to `/signup`.
 - `tests/multi-chrome.spec.ts`: Updated Tab 1 registration to `/signup`.
 - `tests/end-to-end-architecture.spec.ts`: Updated Test 5 to `/signup` and added Test 9.

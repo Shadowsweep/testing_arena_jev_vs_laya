@@ -4,58 +4,73 @@ An attack simulation and automated defense system that compares remote cloud AI 
 
 Most security dashboards tell you that you were attacked half an hour after it happened. This system cuts the delay. It runs incoming requests through client telemetry, scores the traffic with two different AI models, and automatically blocks attacking IP addresses in less than one millisecond.
 
-![Security Command Center](docs/images/security-dashboard.png)
-
----
-
-## What SOAR stands for
-
-SOAR stands for **Security Orchestration, Automation, and Response**.
-
-Traditional setups treat monitoring and mitigation as separate jobs. An alert fires, a ticket opens, and an engineer reviews the log whenever they get to it.
-
-SOAR combines those three steps into code:
-
-1. **Security Orchestration.** It ties together the Express login gateway, the audit log collector, the AI triage models, and the network blocklist into one pipeline.
-2. **Automation.** Instead of asking a human to inspect IP history, the server triggers an evaluation playbook as soon as traffic spikes or suspicious payloads appear.
-3. **Response.** If confidence crosses 90%, the backend writes the IP to a blocklist with a 15-minute expiration time. The next request from that address receives an immediate `403 Forbidden` response. No human intervention needed.
+![Security Command Center](images/security-dashboard.png)
 
 ---
 
 ## System architecture
 
-Here is the exact data flow through the application:
+```
+               [ Client Browser / Attack Script ]
+                               │
+            ┌──────────────────┴──────────────────┐
+            │ Ingress Layer (/login, /signup)     │
+            │ • Biometric Telemetry (mouse, keys) │
+            │ • Password eye toggle & auth tabs   │
+            └──────────────────┬──────────────────┘
+                               │
+            ┌──────────────────▼──────────────────┐
+            │ Layer 1: Ingress Attempt Gate       │
+            │ • Check credentials vs user store   │
+            │ • < 5 fails: Benign retry (401)     │
+            │ • >= 5 fails: Brute force flag      │
+            └──────────────────┬──────────────────┘
+                               │
+            ┌──────────────────▼──────────────────┐
+            │ Layer 2: Sliding Audit Window       │
+            │ • Rolling 20-event memory buffer    │
+            │ • In-memory IP/user state tracking  │
+            └──────────────────┬──────────────────┘
+                               │
+         ┌─────────────────────┴─────────────────────┐
+         ▼                                           ▼
+┌───────────────────────────────┐   ┌───────────────────────────────┐
+│ Layer 3A: Jev SystemOne Cloud │   │ Layer 3B: Laya Local Engine   │
+│ • HTTPS endpoint              │   │ • Localhost port 8000         │
+│ • Latency: ~240ms             │   │ • Latency: ~33ms (7x faster)  │
+│ • Cross-user correlation      │   │ • Zero data egress            │
+└───────────────┬───────────────┘   └───────────────┬───────────────┘
+                │                                   │
+                └─────────────────┬─────────────────┘
+                                  │
+            ┌─────────────────────▼─────────────────────┐
+            │ Layer 4: Mathematical Decision Primitives │
+            │ • neoul: Continuous threat probability    │
+            │ • choice: Categorical tactic taxonomy     │
+            │ • score: Exploit severity (0.0 to 3.0)    │
+            └─────────────────────┬─────────────────────┘
+                                  │
+            ┌─────────────────────▼─────────────────────┐
+            │ Layer 5: SOAR Closed-Loop Mitigation      │
+            │ • Threat confidence >= 90%                │
+            │ • Add IP to dynamic 15-minute blocklist   │
+            │ • soarGuard returns immediate 403 status  │
+            └───────────────────────────────────────────┘
+```
 
-```
-                        Client Request (/signup or /login)
-                                       │
-                         [ Layer 1: Behavioral Telemetry ]
-                         Checks cursor travel and typing deltas.
-                         0px movement + <500ms = bot flag.
-                                       │
-                      [ Layer 2: Auth Gate & Threshold ]
-                      • Valid credentials -> 200 OK (Normal User)
-                      • Typos (<5 attempts) -> 401 with hint
-                      • Rapid fails (>=5) -> 401 (Brute Force Flagged)
-                                       │
-                          [ Layer 3: Audit Buffer ]
-                          Collects sliding window of last 20 attempts.
-                                       │
-                         [ Layer 4: Dual AI Triage ]
-                         Sends payload to both models in parallel:
-                         • Jev SystemOne (Cloud API, ~240ms)
-                         • Laya Stub (Local port 8000, ~33ms)
-                                       │
-                       [ Layer 5: Typed Decisions ]
-                       Outputs three structured metrics:
-                       • neoul: probability of threat (0.0 to 1.0)
-                       • choice: specific tactic (sqli, spray, brute_force)
-                       • score: exploit risk (0.0 to 3.0)
-                                       │
-                      [ Layer 6: Closed-Loop SOAR Block ]
-                      Confidence >= 90% writes IP to dynamic blocklist.
-                      Subsequent requests get immediate 403 Forbidden.
-```
+---
+
+## What SOAR stands for
+
+**SOAR** stands for **Security Orchestration, Automation, and Response**.
+
+Traditional security dashboards only alert a human engineer. SOAR lets software block the attacker automatically.
+
+* **Security Orchestration:** Connects the Express login gateway, the AI evaluation models, and the network blocklist into one automated pipeline.
+* **Automation:** Triggers detection playbooks immediately when rapid failures or attack payloads appear, without waiting for human clicks.
+* **Response:** Cuts off the attacker. When threat confidence reaches 90% or higher, the server blacklists the IP for 15 minutes and returns `403 Forbidden` on every subsequent request.
+
+Mitigation time drops from 30 minutes of human review down to less than one millisecond.
 
 ---
 
@@ -71,7 +86,7 @@ The login form records client biometrics before sending credentials to the serve
 
 When a script sends requests via curl or Playwright without simulating mouse movement, the distance stays 0px and form duration stays under 500ms. The backend flags this as `is_synthetic_bot: true`.
 
-![Authentication Gateway](docs/images/auth-gateway.png)
+![Authentication Gateway](images/auth-gateway.png)
 
 ### Layer 2. Authentication rules and brute force threshold
 
@@ -86,6 +101,8 @@ The server enforces an attempt limit:
 * Fewer than 5 mistakes: Treated as human error. Shows an `Invalid credentials` message and reveals the recovery hint on attempt 3.
 * 5 or more mistakes: The account gets flagged as an active brute force attack. The UI shows a red warning and the audit log records a `401 (ATTACK FLAGGED)` entry.
 
+![Legitimate User Dashboard](images/user-dashboard.png)
+
 ### Layer 3. Dual model comparison
 
 The platform benchmarks two different AI setups on the exact same traffic window:
@@ -95,11 +112,13 @@ The platform benchmarks two different AI setups on the exact same traffic window
 
 If the remote Jev API key is missing, the server falls back to an internal heuristic engine. Demos and tests never fail due to an unreachable third-party API.
 
+![Dual Engine Triage and Verdict](images/dual-engine-triage.png)
+
 ### Layer 4. Mathematical decision tables
 
 Instead of free-form text output, the models respond with three typed fields:
 
-![Decision Reasoning Primitives](docs/images/reasoning-primitives.png)
+![Decision Reasoning Primitives](images/reasoning-primitives.png)
 
 * **neoul (continuous probability).** A floating point number between 0.0 and 1.0. A value above 0.800 marks the traffic as an active attack.
 * **choice (categorical classification).** Selects one attack label from `sqli_attempt`, `password_spray`, `credential_stuffing`, `brute_force`, or `benign_login`.
@@ -164,9 +183,11 @@ Create a `.env` file in the project root:
 
 ```env
 TYPESAFE_API_KEY=your_key_here
+DEMO_FAKE_IP=198.51.100.42
 ```
 
-If you leave this empty, the server automatically uses the local heuristic engine. Everything keeps working.
+* `TYPESAFE_API_KEY`: Connects to Jev SystemOne cloud engine. If left empty, the server automatically uses the local heuristic engine. Everything keeps working.
+* `DEMO_FAKE_IP`: Masks incoming and simulation client IPs in the surveillance log for safe demo recording and privacy. Defaults to `198.51.100.42`.
 
 ### Step 3. Start the server
 
@@ -192,6 +213,12 @@ App on http://localhost:3000
 ## Automated tests
 
 The codebase includes 14 end-to-end Playwright tests covering registration, login, hint recovery, telemetry capture, and SOAR blocking.
+
+First time setup requires downloading the Chromium browser engine:
+
+```bash
+npx playwright install chromium
+```
 
 Run the full suite in headless mode:
 

@@ -5,6 +5,11 @@ test.describe('Auth sim: 1 user vs 200 burst, Jev vs Laya', () => {
   const pass = 'StrongPassword#2026';
   const hint = 'Bruno';
 
+  test.beforeEach(async ({ request }) => {
+    await request.post('/api/clear-buffer');
+    await request.post('/api/soar/unblock');
+  });
+
   test('Flow A: signup + login -> personal dashboard', async ({ page }) => {
     await page.goto('/signup');
     await page.fill('#reg-user', user);
