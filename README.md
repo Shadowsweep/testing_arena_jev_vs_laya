@@ -1,4 +1,4 @@
-# NVIDIA Cyber Command
+# Cyber Command
 
 An attack simulation and automated defense system that compares remote cloud AI with a local edge model on live credential attacks.
 
